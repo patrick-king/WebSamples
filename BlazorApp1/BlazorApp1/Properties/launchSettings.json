@@ -28,6 +28,13 @@
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "publishAllPorts": true
+    },
+    "Azure Dev Spaces": {
+      "commandName": "AzureDevSpaces",
+      "launchBrowser": true,
+      "resourceGroup": "pkhelloaks",
+      "aksName": "pkhelloaks",
+      "subscriptionId": "8b55b1bd-cb5f-471c-9e08-c70ece11e506"
     }
   }
 }
