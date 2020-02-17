@@ -8,7 +8,7 @@ FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
 WORKDIR /src
 COPY ["BlazorApp1.csproj", "BlazorApp1/"]
 RUN dotnet restore "BlazorApp1/BlazorApp1.csproj"
-COPY . .
+COPY . ./
 WORKDIR "/src/BlazorApp1"
 RUN dotnet build "BlazorApp1.csproj" -c Release -o /app/build
 
