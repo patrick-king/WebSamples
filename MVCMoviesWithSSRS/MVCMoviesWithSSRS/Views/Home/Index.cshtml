@@ -1,0 +1,15 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    Username: @ViewBag.UserName
+    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <p>Test Page that Saves To Multiple tables <a asp-action="CreateMovieAndPrice" asp-controller="Movies">Create Movie and Enter Pricing</a></p>
+
+
+    <a asp-controller="Sellers">
+    <input type="button" value="Sellers Index Page" />
+</a>
+</div>

@@ -1,0 +1,51 @@
+﻿@model IEnumerable<MVCMoviesWithSSRS.Data.SellerMovieReportRow>
+
+@{
+    ViewData["Title"] = "Seller Movies Report";
+}
+
+<h1>Seller Movies Report</h1>
+@if(ViewBag.SellerId > 0)
+{
+    <div>
+        For Seller Id: @ViewBag.SellerId
+    </div>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.SellerName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MovieTitle)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MovieId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MoviePrice)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.SellerName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.MovieTitle)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.MovieId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.MoviePrice)
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
