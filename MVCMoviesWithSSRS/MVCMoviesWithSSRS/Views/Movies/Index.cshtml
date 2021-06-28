@@ -26,6 +26,7 @@
                 @Html.DisplayNameFor(model => model.Price)
             </th>
             <th></th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -48,6 +49,7 @@
                 <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
                 <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
             </td>
+            <td><a asp-action="MovieSellersReport" asp-controller="Sellers" asp-route-movieId="@item.Id">Sellers Report for this Movie</a></td>
         </tr>
 }
     </tbody>

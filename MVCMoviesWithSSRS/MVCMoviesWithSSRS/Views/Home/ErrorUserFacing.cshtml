@@ -1,0 +1,14 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+@if(ViewData.ContainsKey("ErrorMessage"))
+{
+    <div>There was an error: @ViewBag.ErrorMessage</div>
+}
+else
+{
+    <div>An error was encountered during the last action. Please try again.</div>
+}

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
+using System.ServiceModel;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -9,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using MVCMoviesWithSSRS.Models;
 using MVCMoviesWithSSRS.Utility;
+using SSRS2005ExecSvc;
 
 namespace MVCMoviesWithSSRS.Controllers
 {
@@ -279,6 +282,109 @@ namespace MVCMoviesWithSSRS.Controllers
 
 
 
+        }
+
+
+        private SSRS2005ExecSvc.ReportExecutionServiceSoapClient getSSRS2005ExecClient()
+        {
+            var ssrsSettings = _config.GetSection("SSRS");
+            
+            //For http urls. If using https, use BasicHttpSecurityMode.Transport
+            BasicHttpBinding ssrsBinding = new System.ServiceModel.BasicHttpBinding(BasicHttpSecurityMode.TransportCredentialOnly);
+            //sizing of message settings to accomodate large report files. Adjust as needed. May want to put this in configuration.
+            int maxReportSize = Convert.ToInt32(ssrsSettings["MaxReportBytes"]);
+            ssrsBinding.MaxReceivedMessageSize = maxReportSize;
+            ssrsBinding.MaxBufferSize = maxReportSize;
+            ssrsBinding.MaxBufferPoolSize = Int32.MaxValue;
+            ssrsBinding.ReaderQuotas.MaxDepth = Int32.MaxValue;
+            ssrsBinding.ReaderQuotas.MaxStringContentLength = Int32.MaxValue;
+            ssrsBinding.ReaderQuotas.MaxArrayLength = Int32.MaxValue;
+            ssrsBinding.ReaderQuotas.MaxBytesPerRead = Int32.MaxValue;
+            ssrsBinding.ReaderQuotas.MaxNameTableCharCount = Int32.MaxValue;
+
+
+            //Build URL of report
+           
+            string address = string.Format("{0}/{1}", ssrsSettings["ServerURL"].TrimEnd('/'), "ReportExecution2005.asmx");
+
+            EndpointAddress ssrsAddress = new EndpointAddress(address);
+
+            SSRS2005ExecSvc.ReportExecutionServiceSoapClient ssrsClient = new SSRS2005ExecSvc.ReportExecutionServiceSoapClient(ssrsBinding, ssrsAddress);
+            ssrsClient.ClientCredentials.Windows.AllowedImpersonationLevel = System.Security.Principal.TokenImpersonationLevel.Impersonation;
+            ssrsClient.ClientCredentials.Windows.ClientCredential = System.Net.CredentialCache.DefaultNetworkCredentials;
+
+            return ssrsClient;
+        }
+
+        public async Task<IActionResult> MovieSellersReport(int movieId)
+        {
+
+            var reportName = "MovieSellers";
+            //Render a PDF of the sellers for the given movie
+
+            //
+            //Configure Report Proxy
+            //
+            var ssrsClient = getSSRS2005ExecClient();
+            try
+            {
+                await ssrsClient.OpenAsync();
+                var ssrsSettings = _config.GetSection("SSRS");
+
+                //
+                //Load report
+                //
+                var loadRequest = new LoadReportRequest();
+                loadRequest.Report = string.Format("/{0}/{1}", ssrsSettings["ReportsFolder"].Trim('/'), reportName);
+                var loadResponse = await ssrsClient.LoadReportAsync(loadRequest);
+
+                //
+                //Setup Parameters
+                //
+                // this report has one parameter, the MovieId
+                var reportParams = new ParameterValue[] { new ParameterValue() { Name = "MovieId", Value = movieId.ToString() } };
+                //Note, if you have a parameter that is optional, still include it but set its value to null
+                var ssrsParamRequest = new SetExecutionParametersRequest();
+                ssrsParamRequest.ExecutionHeader = loadResponse.ExecutionHeader;
+                ssrsParamRequest.Parameters = reportParams;
+                ssrsParamRequest.ParameterLanguage = "en-us";
+                var setParamResponse = await ssrsClient.SetExecutionParametersAsync(ssrsParamRequest);
+
+                //
+                //Render Report
+                //
+                var renderRequest = new RenderRequest(loadResponse.ExecutionHeader, null, "PDF", null);
+                var renderResponse = await ssrsClient.RenderAsync(renderRequest);
+                var returnedReport = renderResponse.Result;
+                await ssrsClient.CloseAsync();
+
+                //Send report to user
+                if (returnedReport != null)
+                {
+
+                    return new FileContentResult(returnedReport, "application/pdf");
+                }
+                else
+                {
+                    //Error rendering the report.
+                    ViewBag.ErrorMessage = "The report failed to render. Check the report server.";
+                    
+                }
+            }
+            catch(Exception ex)
+            {
+                ViewBag.ErrorMessage = ex.Message;
+
+            }
+            finally
+            {
+               if (ssrsClient.State != CommunicationState.Closed)
+                {
+                    ssrsClient.Abort();
+                }
+            }
+
+            return RedirectToAction("ErrorUserFacing", "Home", new { errorMessage = ViewBag.ErrorMessage });
         }
     }
 }
