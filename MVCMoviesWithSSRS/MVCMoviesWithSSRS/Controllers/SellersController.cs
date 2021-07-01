@@ -280,8 +280,6 @@ namespace MVCMoviesWithSSRS.Controllers
                 return View(models);
             }
 
-
-
         }
 
 
@@ -291,7 +289,7 @@ namespace MVCMoviesWithSSRS.Controllers
             
             //For http urls. If using https, use BasicHttpSecurityMode.Transport
             BasicHttpBinding ssrsBinding = new System.ServiceModel.BasicHttpBinding(BasicHttpSecurityMode.TransportCredentialOnly);
-            //sizing of message settings to accomodate large report files. Adjust as needed. May want to put this in configuration.
+            //sizing of message settings to accomodate large report files.
             int maxReportSize = Convert.ToInt32(ssrsSettings["MaxReportBytes"]);
             ssrsBinding.MaxReceivedMessageSize = maxReportSize;
             ssrsBinding.MaxBufferSize = maxReportSize;
@@ -310,6 +308,7 @@ namespace MVCMoviesWithSSRS.Controllers
             EndpointAddress ssrsAddress = new EndpointAddress(address);
 
             SSRS2005ExecSvc.ReportExecutionServiceSoapClient ssrsClient = new SSRS2005ExecSvc.ReportExecutionServiceSoapClient(ssrsBinding, ssrsAddress);
+
             ssrsClient.ClientCredentials.Windows.AllowedImpersonationLevel = System.Security.Principal.TokenImpersonationLevel.Impersonation;
             ssrsClient.ClientCredentials.Windows.ClientCredential = System.Net.CredentialCache.DefaultNetworkCredentials;
 
@@ -361,14 +360,13 @@ namespace MVCMoviesWithSSRS.Controllers
                 //Send report to user
                 if (returnedReport != null)
                 {
-
+                    //return report to client. Browser handler will show (in edge, this will show automatically in browser) OR, if no browser handler for PDF, report will show up as a download.
                     return new FileContentResult(returnedReport, "application/pdf");
                 }
                 else
                 {
                     //Error rendering the report.
                     ViewBag.ErrorMessage = "The report failed to render. Check the report server.";
-                    
                 }
             }
             catch(Exception ex)

@@ -120,7 +120,7 @@ namespace MVCMoviesWithSSRS.Controllers
 
             var releaseDate = new SqlParameter("ReleaseDate", System.Data.SqlDbType.DateTime2);
             releaseDate.Value = model.ReleaseDate;
-            
+
             var genre = new SqlParameter("Genre", System.Data.SqlDbType.NVarChar);
             genre.Value = stringToDbString(model.Genre);
 
@@ -160,7 +160,7 @@ namespace MVCMoviesWithSSRS.Controllers
                 //Here we are using an EF Core convenience method. We could also do this with ADO.NET classes (SQLCommand, SQLConnection, SQLParameter) instead. 
                 return await _context.Database.ExecuteSqlRawAsync("EXECUTE dbo.AddNewMovieFromPage @Title, @ReleaseDate, @Genre, @MSRP, @SellerName, @URL, @Address, @City, @State, @Zip, @Phone, @SellerPrice", sqlparams);
             }
-            else if(model.SaveWithStoredProcADONET)
+            else if (model.SaveWithStoredProcADONET)
             {
                 //Classic ADO.NET Logic
                 SqlCommand cmd = new SqlCommand();
@@ -190,14 +190,14 @@ namespace MVCMoviesWithSSRS.Controllers
                     {
                         await cn.CloseAsync();
                         await cn.DisposeAsync();
-                    }                    
+                    }
                 }
             }
             else
             {
                 throw new ArgumentException("Called to use Stored Proc without a valid selection");
             }
-            
+
         }
 
         /// <summary>
@@ -343,17 +343,17 @@ namespace MVCMoviesWithSSRS.Controllers
             try
             {
                 _context.Movie.Remove(movie);
-            
+
                 await _context.SaveChangesAsync();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 //Logs the exception, plus your formatted message
                 var requestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
-                _logger.LogError(ex,"Error in {0} - Request Id {1}", 
+                _logger.LogError(ex, "Error in {0} - Request Id {1}",
                     nameof(DeleteConfirmed), requestId);
 
-                return View("Error",new ErrorViewModel { RequestId = requestId});
+                return View("Error", new ErrorViewModel { RequestId = requestId });
             }
             return RedirectToAction(nameof(Index));
         }
@@ -363,7 +363,117 @@ namespace MVCMoviesWithSSRS.Controllers
             return _context.Movie.Any(e => e.Id == id);
         }
 
+        public async Task<IActionResult> SeedDatabase()
+        {
+            try
+            {
+                string[] cities = {"Avery", "Boston", "Canadaigua", "Dalton", "Eastwood", "Franck", "Gopherville", "Handley", "Interlachen", "Joesephine", "Kazaam",
+            "Lincoln", "Manners", "Nopline", "Oscaloa", "Pinsal",
+            "Quantine", "Rufus", "Seldom", "Tankeral", "Uranium",
+            "Vesper", "Walden", "Vandolf", "Xuxa", "Yolo", "Zingping"};
 
-        
+                string[] firstNames = {"Action", "AAA", "Bing",
+                "Cash", "Cheap", "Elite", "Best",
+            "Great", "Good", "First", "Fresh"};
+
+                string[] lastNames = { "Video", "Entertainment", "Vids", "Video Rentals", "Home Cinema", "DvD", "Movies", "Movie Rentals", "Zinema", "Flicks" };
+
+                string[] movies1 = { "A new", "Best", "Candid", "Cute", "Dangerous", "Brightest", "Daring", "My Darling", "First",
+            "Fresh"};
+
+                string[] movies2 = { "Alligator", "Alley", "Kitty", "Puppy", " Barbeque Grill", "Night Watchman", "Meter Patrol", " Desert Land", "Castaways", "Pastry Chef" };
+
+
+
+                //Ensure that we have basic sample data in database
+                bool created = await _context.Database.EnsureCreatedAsync();
+
+                var firstSeller = (from s in _context.Sellers
+                                   where s.Id == 1
+                                   select s).FirstOrDefault();
+
+                const int SELLERCOUNT = 20;
+                const int MOVIECOUNT = 30;
+
+                int j;
+                if (firstSeller == null)
+                {
+
+                    j = 1;
+                    for (int i = 1; i <= SELLERCOUNT; i++)
+                    {
+                        string name = firstNames[i % 10] + " " + lastNames[j];
+                        _context.Sellers.Add(new Seller()
+                        {
+
+                            Address1 = string.Format("{0} {1} Street", i, firstNames[i % 10]),
+                            City = cities[i % 10],
+                            State = "MA",
+                            Name = name,
+                            Phone = (5551212 + i).ToString(),
+                            URL = "http://localhost/sellers/detail/" + i.ToString(),
+                            Zip = (10000 + i).ToString()
+                        });
+                        if (i % 10 == 0)
+                        {
+                            j += 1;
+                        }
+
+                    }
+
+
+
+                    j = 1;
+                    //movies
+                    for (int i = 1; i <= MOVIECOUNT; i++)
+                    {
+                        string name = $"{movies1[i % 10]} {movies2[i % j]}";
+                        _context.Movie.Add(new Movie()
+                        {
+
+                            Genre = "Western",
+                            Price = (decimal)(10.00 + ((double)i * .40)),
+                            ReleaseDate = new DateTime(2020 - i, i % 11 + 1, i % 27 + 1),
+                            Title = name
+                        });
+
+                        if (i % 10 == 0)
+                        {
+                            j += 1;
+                        }
+                    }
+
+                    _context.SaveChanges();
+
+                    int lastMovie = _context.Movie.OrderBy(t=>t.Id).Last().Id;
+                    int lastSeller = _context.Sellers.OrderBy(s=>s.Id).Last().Id;
+
+
+                    var rnd = new System.Random(23);
+
+
+                    //movie price
+                    for (int i = 0; i < 20; i++)
+                    {
+                        _context.MoviePrices.Add(new MoviePrice()
+                        {
+                            DateEntered = new DateTime((int)(50 * rnd.NextDouble() + 1970), (int)(11 * rnd.NextDouble() + 1), (int)(27 * rnd.NextDouble() + 1)),
+
+                            MovieId = (int)(lastMovie - rnd.Next(MOVIECOUNT)),
+                            SellerId = (int)(lastSeller - rnd.Next(SELLERCOUNT)),
+                            Price = rnd.NextDouble() * 50
+                        });
+                    }
+                    _context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = ex.Message;
+            }
+
+            return View();
+        }
+
     }
 }

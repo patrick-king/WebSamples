@@ -20,6 +20,7 @@ namespace MVCMoviesWithSSRS.Models
 
         
         //Reporting Entity Classes
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped()]
         public virtual DbSet<SellerMovieReportRow> SellerMoviesReport { get; set; }
 
        
